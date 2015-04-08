@@ -1,0 +1,31 @@
+****** WORKFLOW ******
+----------------------
+0. [Needleman-Wunsch Alignment]
+
+1. global_parse_needle_out.pl
+	- > parse_needle_out.pl 
+
+2. process_basic_stats_and_classification.R
+
+
+
+
+
+=======================================================================================
+Needleman-Wunsch Alignment scripts:
+> Samples: 
+bsub -n 4 ./align_all_samples.sh
+
+# depr: bsub -n 7 -M 70000 -R "rusage[mem=70000]" ./align_samples_with_needlewunsch.pl 
+# bsub -n 20 -M 4096 -R "rusage[mem=4096]" ./align_all_samples.sh
+
+
+> Calibration:
+bsub -n 4 ./align_all_calibration.sh 
+
+# depr: bsub -n 5 -M 70000 -R "rusage[mem=70000]" ./align_calibration_with_needlewunsch.pl 
+# bsub -n 20 -M 4096 -R "rusage[mem=4096]" ./align_all_calibration.sh
+
+
+(Note: the orphans cannot aligned with NW since I don't know which amplicon they should
+be aligned against)
