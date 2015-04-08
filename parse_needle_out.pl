@@ -18,7 +18,7 @@ open(FH2, $needle_out2);
 
 my $ALLOWED_MISMATCHES_THRESHOLD = 6;
 my $ALLOWED_INSERTIONS_THRESHOLD = 5;	
-
+my $TRIM_SEQS_TO_100_NT = "T";
 
 
 
@@ -59,7 +59,14 @@ open(DELETIONS_IN_SEED, ">$path_to_save/deletions_in_seed.seqs");
 open(BASIC_STATS_FH, ">$path_to_save/basic.stats");
 open(SEQ_CLASSIFICATION_FH, ">$path_to_save/seq_classification.stats");
 
+
+my $target_start = -1;
+my $anti_target_start = -1;
+my $substr_start = -1;
+my $anti_substr_start = -1;	
+
 while(defined($l1 = <FH1>) && defined($l2 =<FH2>)){
+
 
 	chomp($l1);
 	chomp($l2);
@@ -70,7 +77,7 @@ while(defined($l1 = <FH1>) && defined($l2 =<FH2>)){
 	my @anti_insertions = ();
 	my @anti_mismatches = ();
 
-	
+
 
 	$index++;
 	if($index == 1){
@@ -83,9 +90,47 @@ while(defined($l1 = <FH1>) && defined($l2 =<FH2>)){
 		$amplic_aligned_seq = $l1;
 		$anti_amplic_aligned_seq = $l2;	
 
+if($TRIM_SEQS_TO_100_NT eq "T"){
+$target_start = index($amplic_aligned_seq , $target_seq);
+$anti_target_start = index($anti_amplic_aligned_seq , $target_seq);
 
-		@insertions = $l1 =~ /\-/g;
-		@anti_insertions = $l2 =~ /\-/g;
+print "target_start: $target_start\n";
+print "anti_target_start: $anti_target_start\n";
+
+
+#print "Original amplic_aligned_seq:\n";
+print "$amplic_aligned_seq\n";
+#print "Original anti_amplic_aligned_seq:\n";
+print "$anti_amplic_aligned_seq\n";
+$substr_start = $target_start - 50;
+
+
+if($target_start != -1){
+	$amplic_aligned_seq = substr($amplic_aligned_seq, $substr_start, 100); 
+}
+
+$anti_substr_start = $anti_target_start - 50;
+if($anti_target_start != -1){
+	$anti_amplic_aligned_seq = substr($anti_amplic_aligned_seq, $anti_substr_start, 100); 
+}
+
+
+
+
+
+#print "Trimmed amplic_aligned_seq:\n";
+print "$amplic_aligned_seq\n";
+#print "Trimmed anti_amplic_aligned_seq:\n";
+print "$anti_amplic_aligned_seq\n";
+}
+
+
+
+#		@insertions = $l1 =~ /\-/g;
+#		@anti_insertions = $l2 =~ /\-/g;
+		@insertions = $amplic_aligned_seq =~ /\-/g;
+		@anti_insertions = $anti_amplic_aligned_seq =~ /\-/g;
+
 		my $insertions_count =  @insertions;
 		my $anti_insertions_count =  @anti_insertions;
 
@@ -106,9 +151,26 @@ while(defined($l1 = <FH1>) && defined($l2 =<FH2>)){
 		$anti_sense_alignment = $l2;
 
 
-		@mismatches = $l1 =~ /[ACGTUXN]/g;
+if($TRIM_SEQS_TO_100_NT eq "T"){
+print "$sense_alignment\n";
+print "$anti_sense_alignment\n";
+#print "substr_start: $substr_start\n";
+#print "anti_substr_start: $anti_substr_start\n";
+if($target_start != -1){
+	$sense_alignment = substr($sense_alignment, $substr_start, 100);
+}
+if($anti_target_start != -1){
+	$anti_sense_alignment = substr($anti_sense_alignment, $anti_substr_start, 100);
+}
+
+print "$sense_alignment\n";
+print "$anti_sense_alignment\n";
+}
+
+
+		@mismatches = $sense_alignment =~ /[ACGTUXN]/g;
 		my $mismatch_count =  @mismatches;
-		@anti_mismatches = $l2 =~ /[ACGTUXN]/g;
+		@anti_mismatches = $anti_sense_alignment =~ /[ACGTUXN]/g;
 		my $anti_mismatch_count =  @anti_mismatches;
 
 
@@ -182,7 +244,7 @@ my $wt_seed_intact_ratio = ($wt_seed_intact_cnt/$valid_reads_cnt)*100;
 my $deletions_in_seed_ratio = ($deletions_in_seed_cnt/$valid_reads_cnt)*100;
 
 
-if($inconsistent_pairs_ratio > 1){
+#if($inconsistent_pairs_ratio > 1){
 print "-----------------------------------\n";
 print "-- Total counts: $total_counts\n";
 printf("> Alignment quality: %.2f%%\n", $aln_quality);
@@ -197,15 +259,15 @@ printf("> Counts with deletions in seed ratio (CRISPR-ed): %.2f%%\n", $deletions
 printf("> Target seq not found ratio (Insertion at the MRE seed region) [extra CRISPR-ed]: %.2f%%\n", $target_seq_not_found_ratio); 
 
 print "inconsistent_pairs_cnt: $inconsistent_pairs_cnt\n";
-}
+#}
 
 print BASIC_STATS_FH "mre\ttotal_counts\tvalid_reads_cnt\tdiscarded_reads_cnt\taln_quality\tno_amplicon_insertion_ratios\n";
-printf BASIC_STATS_FH "$mre\t$total_counts\t$valid_reads_cnt\t$discarded_reads_cnt\t%.3f\t%.3f\n", $aln_quality, $no_amplicon_insertion_ratios;
+printf BASIC_STATS_FH "$mre\t$total_counts\t$valid_reads_cnt\t$discarded_reads_cnt\t%.6f\t%.6f\n", $aln_quality, $no_amplicon_insertion_ratios;
 
 
 
 print SEQ_CLASSIFICATION_FH "MRE\tWT\tWT_SEED_INTACT\tDELETIONS_IN_SEED_RATIO_CRISPR\tTARGET_SEQ_NOT_FOUND_CRISPR\tWT_CNT\tWT_SEED_INTACT_CNT\tDELETIONS_IN_SEED_CNT_CRISPR\tTARGET_SEQ_NOT_FOUND_CNT_CRISPR\n";
-printf SEQ_CLASSIFICATION_FH "$mre\t%.3f\t%.3f\t%.3f\t%.3f\t$pure_wt_cnt\t$wt_seed_intact_cnt\t$deletions_in_seed_cnt\t$target_seq_not_found_cnt\n", $pure_wt_ratio, $wt_seed_intact_ratio, $deletions_in_seed_ratio, $target_seq_not_found_ratio;
+printf SEQ_CLASSIFICATION_FH "$mre\t%.6f\t%.6f\t%.6f\t%.6f\t$pure_wt_cnt\t$wt_seed_intact_cnt\t$deletions_in_seed_cnt\t$target_seq_not_found_cnt\n", $pure_wt_ratio, $wt_seed_intact_ratio, $deletions_in_seed_ratio, $target_seq_not_found_ratio;
 
 
 
