@@ -1,4 +1,5 @@
 input_dir = "needle_output"
+#input_dir = "needle_output-antons_bins"
 
 basic_stats_file = paste(input_dir, "All_libs_basic.stats", sep="/")
 classifications_file = paste(input_dir, "All_libs_classification.stats", sep="/")

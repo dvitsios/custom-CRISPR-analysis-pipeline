@@ -94,14 +94,14 @@ if($TRIM_SEQS_TO_100_NT eq "T"){
 $target_start = index($amplic_aligned_seq , $target_seq);
 $anti_target_start = index($anti_amplic_aligned_seq , $target_seq);
 
-print "target_start: $target_start\n";
-print "anti_target_start: $anti_target_start\n";
+#print "target_start: $target_start\n";
+#print "anti_target_start: $anti_target_start\n";
 
 
 #print "Original amplic_aligned_seq:\n";
-print "$amplic_aligned_seq\n";
+#print "$amplic_aligned_seq\n";
 #print "Original anti_amplic_aligned_seq:\n";
-print "$anti_amplic_aligned_seq\n";
+#print "$anti_amplic_aligned_seq\n";
 $substr_start = $target_start - 50;
 
 
@@ -119,9 +119,9 @@ if($anti_target_start != -1){
 
 
 #print "Trimmed amplic_aligned_seq:\n";
-print "$amplic_aligned_seq\n";
+#print "$amplic_aligned_seq\n";
 #print "Trimmed anti_amplic_aligned_seq:\n";
-print "$anti_amplic_aligned_seq\n";
+#print "$anti_amplic_aligned_seq\n";
 }
 
 
@@ -152,8 +152,8 @@ print "$anti_amplic_aligned_seq\n";
 
 
 if($TRIM_SEQS_TO_100_NT eq "T"){
-print "$sense_alignment\n";
-print "$anti_sense_alignment\n";
+#print "$sense_alignment\n";
+#print "$anti_sense_alignment\n";
 #print "substr_start: $substr_start\n";
 #print "anti_substr_start: $anti_substr_start\n";
 if($target_start != -1){
@@ -163,8 +163,8 @@ if($anti_target_start != -1){
 	$anti_sense_alignment = substr($anti_sense_alignment, $anti_substr_start, 100);
 }
 
-print "$sense_alignment\n";
-print "$anti_sense_alignment\n";
+#print "$sense_alignment\n";
+#print "$anti_sense_alignment\n";
 }
 
 
