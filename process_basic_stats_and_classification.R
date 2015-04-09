@@ -37,9 +37,15 @@ for(lib in libs){
 	print(head(cur_lib_basic_ratios))
 
 
-
+	# plot valid/discarded % ratios for each MRE
 	barplot(as.matrix(t(cur_lib_basic_ratios)), col=valid_discarded_colors, main=paste("Library ", lib, "\nValid (blue) & Discarded (light red)\nreads ratios", sep=""), las = 2, cex.names=0.4)
 
+	# plot reads depth for each MRE
+	cur_lib_total_read_depths = data.frame(cur_lib_basic_df$TOTAL_COUNTS)
+	rownames(cur_lib_total_read_depths) = cur_lib_basic_df$MRE
+	colnames(cur_lib_total_read_depths) = c("TOTAL_COUNTS")
+
+	barplot(as.matrix(t(cur_lib_total_read_depths)), col="#99d8c9", main=paste("Library ", lib, "\nTotal reads depth per MRE", sep=""), las = 2, cex.names=0.4)
 #plot.new()
 
 }
