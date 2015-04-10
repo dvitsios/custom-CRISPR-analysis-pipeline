@@ -45,7 +45,10 @@ for(lib in libs){
 	rownames(cur_lib_total_read_depths) = cur_lib_basic_df$MRE
 	colnames(cur_lib_total_read_depths) = c("TOTAL_COUNTS")
 
-	barplot(as.matrix(t(cur_lib_total_read_depths)), col="#99d8c9", main=paste("Library ", lib, "\nTotal reads depth per MRE", sep=""), las = 2, cex.names=0.4)
+	
+	barplot(as.matrix(t(cur_lib_total_read_depths)), col="#2ca25f", main=paste("Library ", lib, "\nTotal reads depth per MRE", sep=""), las = 2, cex.names=0.4)
+
+	barplot(as.matrix(t(log2(cur_lib_total_read_depths))), col="#99d8c9", main=paste("Library ", lib, "\nLog2 of total reads depth per MRE", sep=""), las = 2, cex.names=0.4)
 #plot.new()
 
 }
