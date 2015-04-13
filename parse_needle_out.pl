@@ -43,6 +43,22 @@ $anti_sense_alignment = "";
 $anti_TOO_MANY_MISMATCHES = "F";
 $anti_TOO_MANY_AMPLIC_INSERTIONS = "F";
 
+# ************************************
+# Hash to store deletion position info
+# ************************************
+#
+# Each element is a vector of the form:
+# (DU, PU, SD, MRE, PD, DD) where
+# DU: distal upstream
+# PU: proximal upstream
+# SD: seed region
+# MRE: MRE region downstream of the seed region
+# PD: proximal downstream
+# DD: distal downstream
+my %deletion_blocks_hash = ();
+
+
+
 
 my $discarded_reads_cnt = 0;
 my $target_seq_not_found_cnt = 0;
@@ -336,25 +352,86 @@ sub process_valid_alignment_hit {
 
 
 	my $target_start = index($amplic_aligned_seq , $target_seq);
-	#$target_end = $target_start + length($target_seq);
+
+
 
 	# > Deal with the amplicons with insertions first
 	if($target_start == -1){ # This indicates the insertions ratio at the seed region of the MRE.
 		$target_seq_not_found_cnt++;
 
-#				# - Get insertion positions in the target seq
-#				# NO insertions is an array with a singe value of -1.
-#				$insertion_positions_ref = index_all($amplic_aligned_seq, '-');
-#				my @insertion_positions = @$insertion_positions_ref;
-#				if($insertion_positions[0] != -1){
-			# check if insertions don't overlap with the target MRE!				
+#			# - Get insertion positions in the target seq
+#			# NO insertions is an array with a singe value of -1.
+			$insertion_positions_ref = index_all($amplic_aligned_seq, '-');
+			my @insertion_positions = @$insertion_positions_ref;
 			
-			#print "@insertion_positions\n";	
-			#print "target_start: $target_start\n";
-			#print "target_end: $target_end\n";
-			#print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
-			#print "sense_alignment:\n$sense_alignment\n\n";
-#				}
+			# check if insertions don't overlap with the target MRE!				
+			print "[Insertions in Seed Region]:\n";			
+			print "@insertion_positions\n";	
+			print "target_start: $target_start\n";
+			print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
+			print "sense_alignment:\n$sense_alignment\n\n";
+			
+
+			my $substr_length_to_check_for_insertion = 15;
+
+
+#foreach(@insertion_positions){	
+#$pos = $_;
+#$toRemove = '-';
+#$tmp_amplic_aligned_seq =~ s/(.{$pos})$toRemove/$1/;
+
+#$zz = $amplic_aligned_seq;
+#$zz =~ s/(.{$pos})/$1_test_/;
+#substr($zz, $pos, 0) = 'F';  #insert character into string at specific position
+#print "new tmp_amplic_aligned_seq: $zz\n";
+	
+				$tmp_amplic_aligned_seq = $amplic_aligned_seq;
+				$tmp_amplic_aligned_seq =~ s/\-//g;
+				print "tmp_amplic_aligned_seq:\n$tmp_amplic_aligned_seq\n";	
+
+				$tmp_target_start = index($tmp_amplic_aligned_seq , $target_seq);
+				
+
+				$substr_for_insertions_check = substr($amplic_aligned_seq, $tmp_target_start, $substr_length_to_check_for_insertion);
+
+				print "substr_for_insertions_check: $substr_for_insertions_check\n";
+
+				$original_substr_for_insertions_check = $substr_for_insertions_check;
+				
+				$substr_for_insertions_check =~ s/\-//g;
+				$substr_seed_segment = substr($substr_for_insertions_check, 0, length($target_seq));
+
+				print "substr_seed_segment: $substr_seed_segment\n";
+				
+				if($substr_seed_segment ne $target_seq){
+					print "[Error]: substr_seed_segment ne target_seq!\n";
+					exit;
+				}
+
+		
+				# Current approach:
+				# Classify all '-' from the substr_for_insertions_check as CRISPR insertions (handled as 'deletion')
+				# inside the seed region.
+				# Later on, I should detect if any '-' exceed the overall region. The ratio of these cases is not 
+				# expected to be significant though.
+
+#(DU, PU, SD, MRE, PD, DD)			
+#%deletion_blocks_hash
+
+				@SD = $original_substr_for_insertions_check =~ /\-/g;
+				$SD = scalar @SD;
+				print "SD: $SD\n";   	
+
+				my @deletions_vector = (0, 0, $SD, 0, 0, 0);
+				 
+
+#}
+
+
+
+			
+			print "============================\n\n";
+	
 	} else{
 
 		my $num_of_amplicon_insertions = @insertions;
@@ -369,10 +446,12 @@ sub process_valid_alignment_hit {
 
 		if($num_of_amplicon_insertions == 0 && $num_of_deletions_in_trimmed_read == 0){
 			$pure_wt_cnt++;
-				#print "num_of_amplicon_insertions: $num_of_amplicon_insertions\n";
-				#print "num_of_deletions_in_trimmed_read: $num_of_deletions_in_trimmed_read\n";
-				#print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
-				#print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
+			#print "[Pure WT]:\n";
+			#print "num_of_amplicon_insertions: $num_of_amplicon_insertions\n";
+			#print "num_of_deletions_in_trimmed_read: $num_of_deletions_in_trimmed_read\n";
+			#print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
+			#print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
+			#print "============================\n";
 
 		} else{
 
@@ -384,16 +463,29 @@ sub process_valid_alignment_hit {
 
 				print WT_INTACT_SEED "$amplic_aligned_seq\n";
 				print WT_INTACT_SEED "$sense_alignment\n\n";
-				#print WT_INTACT_SEED "$seed_aln_segment\n";	
+				#print "[WT Intact Seed]:\n";
+				#print "num_of_amplicon_insertions: $num_of_amplicon_insertions\n";
+				#print "num_of_deletions_in_trimmed_read: $num_of_deletions_in_trimmed_read\n";
+				#print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
+				#print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
+				#print "seed_aln_segment: $seed_aln_segment\n";	
+				#print "============================\n\n";
+
 			} else{
 				$deletions_in_seed_cnt++;
 
 				print DELETIONS_IN_SEED "$amplic_aligned_seq\n";
 				print DELETIONS_IN_SEED "$sense_alignment\n\n";
-				#print DELETIONS_IN_SEED "$seed_aln_segment\n";
+				#print "[Deletions in Seed]:\n";
+				#print "num_of_amplicon_insertions: $num_of_amplicon_insertions\n";
+				#print "num_of_deletions_in_trimmed_read: $num_of_deletions_in_trimmed_read\n";
+				#print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
+				#print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
+				#print "seed_aln_segment: $seed_aln_segment\n";	
+				#print "============================\n\n";
+
 			}
 				
 		}
 	}
-
 }
