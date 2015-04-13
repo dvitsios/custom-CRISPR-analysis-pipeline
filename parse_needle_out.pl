@@ -4,6 +4,24 @@ use warnings;
 use Data::Dumper;
 
 
+# Parser of the NW output for each MRE.
+
+# There are 2 distinct CRISPR events being detected:
+# - DELETIONS_IN_SEED (either actual deletion or modification or one or more nts)
+# - INSERTIONS IN SEED (target seq not found in sense alignment)
+# I keep a @deletion_blocks_array array with the number of deletions/insertions (recognised as a single event)
+# in each of the 6 pre-defined blocks:
+# 	* DU: distal upstream
+# 	* PU: proximal upstream
+# 	* SD: seed region
+# 	* MRE: MRE region downstream of the seed region
+# 	* PD: proximal downstream
+# 	* DD: distal downstream
+#  [ DU ]   [PU]  [SD]   [MRE]  [PD]       [DD]
+# (1-50nt) (15nt) (6nt) (14nt) (15nt) (end-50 to end)
+# Total length of all blocks for deletions detection: 100nt
+
+#
 my $needle_out1 = $ARGV[0];
 my $needle_out2 = $ARGV[1];
 my $target_seq = $ARGV[2];
@@ -47,7 +65,7 @@ $anti_TOO_MANY_AMPLIC_INSERTIONS = "F";
 # Hash to store deletion position info
 # ************************************
 #
-# Each element is a vector of the form:
+# Each element is a reference to an array of the form:
 # (DU, PU, SD, MRE, PD, DD) where
 # DU: distal upstream
 # PU: proximal upstream
@@ -55,7 +73,7 @@ $anti_TOO_MANY_AMPLIC_INSERTIONS = "F";
 # MRE: MRE region downstream of the seed region
 # PD: proximal downstream
 # DD: distal downstream
-my %deletion_blocks_hash = ();
+my @deletion_blocks_array = ();
 
 
 
@@ -304,7 +322,12 @@ close(SEQ_CLASSIFICATION_FH);
 
 
 
-
+print "(((((((((((())))))))))))\n";
+print "*** Deletion blocks ***\n";
+foreach(@deletion_blocks_array){
+	@arr = @$_;
+	print "@arr\n";
+}
 
 
 
@@ -365,11 +388,11 @@ sub process_valid_alignment_hit {
 			my @insertion_positions = @$insertion_positions_ref;
 			
 			# check if insertions don't overlap with the target MRE!				
-			print "[Insertions in Seed Region]:\n";			
-			print "@insertion_positions\n";	
-			print "target_start: $target_start\n";
-			print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
-			print "sense_alignment:\n$sense_alignment\n\n";
+#			print "[Insertions in Seed Region]:\n";			
+#			print "@insertion_positions\n";	
+#			print "target_start: $target_start\n";
+#			print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
+#			print "sense_alignment:\n$sense_alignment\n\n";
 			
 
 			my $substr_length_to_check_for_insertion = 15;
@@ -387,21 +410,21 @@ sub process_valid_alignment_hit {
 	
 				$tmp_amplic_aligned_seq = $amplic_aligned_seq;
 				$tmp_amplic_aligned_seq =~ s/\-//g;
-				print "tmp_amplic_aligned_seq:\n$tmp_amplic_aligned_seq\n";	
+#				print "tmp_amplic_aligned_seq:\n$tmp_amplic_aligned_seq\n";	
 
 				$tmp_target_start = index($tmp_amplic_aligned_seq , $target_seq);
 				
 
 				$substr_for_insertions_check = substr($amplic_aligned_seq, $tmp_target_start, $substr_length_to_check_for_insertion);
 
-				print "substr_for_insertions_check: $substr_for_insertions_check\n";
+#				print "substr_for_insertions_check: $substr_for_insertions_check\n";
 
 				$original_substr_for_insertions_check = $substr_for_insertions_check;
 				
 				$substr_for_insertions_check =~ s/\-//g;
 				$substr_seed_segment = substr($substr_for_insertions_check, 0, length($target_seq));
 
-				print "substr_seed_segment: $substr_seed_segment\n";
+#				print "substr_seed_segment: $substr_seed_segment\n";
 				
 				if($substr_seed_segment ne $target_seq){
 					print "[Error]: substr_seed_segment ne target_seq!\n";
@@ -416,21 +439,16 @@ sub process_valid_alignment_hit {
 				# expected to be significant though.
 
 #(DU, PU, SD, MRE, PD, DD)			
-#%deletion_blocks_hash
+#@deletion_blocks_array
 
 				@SD = $original_substr_for_insertions_check =~ /\-/g;
 				$SD = scalar @SD;
-				print "SD: $SD\n";   	
+#				print "SD: $SD\n";   	
 
-				my @deletions_vector = (0, 0, $SD, 0, 0, 0);
-				 
-
-#}
-
-
-
-			
-			print "============================\n\n";
+				my @deletions_vector = (0, 0, $SD, 0, 0, 0);				 
+				push(@deletion_blocks_array, \@deletions_vector);
+#}							
+#			print "============================\n\n";
 	
 	} else{
 
@@ -458,34 +476,56 @@ sub process_valid_alignment_hit {
 			my $seed_aln_segment = substr($sense_alignment, $target_start, length($target_seq));
 
 
-			if($seed_aln_segment !~ /\-/){
+			if($seed_aln_segment !~ /[\-AGCTU]/){
 				$wt_seed_intact_cnt++;
 
 				print WT_INTACT_SEED "$amplic_aligned_seq\n";
 				print WT_INTACT_SEED "$sense_alignment\n\n";
-				#print "[WT Intact Seed]:\n";
-				#print "num_of_amplicon_insertions: $num_of_amplicon_insertions\n";
-				#print "num_of_deletions_in_trimmed_read: $num_of_deletions_in_trimmed_read\n";
-				#print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
-				#print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
-				#print "seed_aln_segment: $seed_aln_segment\n";	
-				#print "============================\n\n";
+#				print "[WT Intact Seed]:\n";
+#				print "num_of_amplicon_insertions: $num_of_amplicon_insertions\n";
+#				print "num_of_deletions_in_trimmed_read: $num_of_deletions_in_trimmed_read\n";
+#				print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
+#				print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
+#				print "seed_aln_segment: $seed_aln_segment\n";	
+#				print "============================\n\n";
+
+				
 
 			} else{
 				$deletions_in_seed_cnt++;
 
 				print DELETIONS_IN_SEED "$amplic_aligned_seq\n";
 				print DELETIONS_IN_SEED "$sense_alignment\n\n";
-				#print "[Deletions in Seed]:\n";
-				#print "num_of_amplicon_insertions: $num_of_amplicon_insertions\n";
-				#print "num_of_deletions_in_trimmed_read: $num_of_deletions_in_trimmed_read\n";
-				#print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
-				#print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
-				#print "seed_aln_segment: $seed_aln_segment\n";	
-				#print "============================\n\n";
+#				print "[Deletions in Seed]:\n";
+#				print "num_of_amplicon_insertions: $num_of_amplicon_insertions\n";
+#				print "num_of_deletions_in_trimmed_read: $num_of_deletions_in_trimmed_read\n";
+#				print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
+#				print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
+#				print "seed_aln_segment: $seed_aln_segment\n";	
+#				print "============================\n\n";
 
 			}
 				
+			
+			# ***********************************************************	
+			# WT_INTACT_SEED & DELETIONS_IN_SEED are handled together for
+			# recording the deletions across the are of interest.
+
+			# get the number of deletions in each of the pre-defined deletion blocks
+			get_deletions_per_block($amplic_aligned_seq, $trimmed_sense_alignment, $target_start);
+	
+
 		}
 	}
+}
+
+sub get_deletions_per_block{
+
+	$amplic_aligned_seq = shift;
+	$trimmed_sense_alignment = shift;
+	$target_start = shift;
+
+	print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
+	print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
+
 }
