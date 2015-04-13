@@ -141,6 +141,9 @@ if($anti_target_start != -1){
 
 		if($anti_insertions_count >= $ALLOWED_INSERTIONS_THRESHOLD){
 			$anti_TOO_MANY_AMPLIC_INSERTIONS = "T";
+			if($TOO_MANY_AMPLIC_INSERTIONS ne "T"){
+				$lines_with_many_insertions++;
+			}
                 }
 
 
@@ -180,7 +183,9 @@ if($anti_target_start != -1){
 		}
 		if($anti_mismatch_count >= $ALLOWED_MISMATCHES_THRESHOLD){
 			$anti_TOO_MANY_MISMATCHES = "T";
-			$lines_with_many_mismatches++;
+			if($TOO_MANY_MISMATCHES ne "T"){
+				$lines_with_many_mismatches++;
+			}
 		}
 
 		$index = 0;
@@ -191,6 +196,8 @@ if($anti_target_start != -1){
 		# **********************
 		if($TOO_MANY_MISMATCHES eq "T" || $TOO_MANY_AMPLIC_INSERTIONS eq "T"){
 
+			# process anti-sense read since the sense read has been discarded already based
+			# on the allowed insertions and deletions thresholds.
 			if(!($anti_TOO_MANY_MISMATCHES eq "T" || $TOO_MANY_AMPLIC_INSERTIONS eq "T")){
 				process_valid_alignment_hit($anti_amplic_aligned_seq, $target_seq, \@anti_insertions, $anti_sense_alignment);			
 				$inconsistent_pairs_cnt++;
@@ -203,7 +210,7 @@ if($anti_target_start != -1){
 			$anti_TOO_MANY_MISMATCHES = "F";
 			$anti_TOO_MANY_AMPLIC_INSERTIONS = "F"; 
 			next;
-		} else{ # process the valid alignment hits
+		} else{ # process the valid alignment hit for the sense read only.
 
 			process_valid_alignment_hit($amplic_aligned_seq, $target_seq, \@insertions, $sense_alignment);
 
@@ -322,6 +329,9 @@ sub process_valid_alignment_hit {
 
 	my $insertions_ref = shift;	
 	my @insertions = @$insertions_ref;
+	# The name 'sense_alignment' has been kept only for legacy reasons.
+	# It can very well be the 'anti_sense_alignment' too if that's
+	# the argument provided to the function.
 	my $sense_alignment = shift;
 
 
@@ -329,7 +339,7 @@ sub process_valid_alignment_hit {
 	#$target_end = $target_start + length($target_seq);
 
 	# > Deal with the amplicons with insertions first
-	if($target_start == -1){ # This indicates the insertions ration at the seed region of the MRE.
+	if($target_start == -1){ # This indicates the insertions ratio at the seed region of the MRE.
 		$target_seq_not_found_cnt++;
 
 #				# - Get insertion positions in the target seq
