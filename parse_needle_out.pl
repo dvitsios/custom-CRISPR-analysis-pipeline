@@ -92,6 +92,7 @@ open(WT_INTACT_SEED, ">$path_to_save/wt_seed_intact.seqs");
 open(DELETIONS_IN_SEED, ">$path_to_save/deletions_in_seed.seqs");
 open(BASIC_STATS_FH, ">$path_to_save/basic.stats");
 open(SEQ_CLASSIFICATION_FH, ">$path_to_save/seq_classification.stats");
+open(DELETIONS_PER_BLOCK, ">$path_to_save/deletions_per_block.txt");
 
 
 my $target_start = -1;
@@ -321,15 +322,18 @@ close(SEQ_CLASSIFICATION_FH);
 
 
 
-
-print "(((((((((((())))))))))))\n";
-print "*** Deletion blocks ***\n";
+print "*** Write deletion blocks counts into a file  ***\n";
 foreach(@deletion_blocks_array){
 	@arr = @$_;
 	print "@arr\n";
+	print DELETIONS_PER_BLOCK "@arr\n";
 }
+close(DELETIONS_PER_BLOCK);
 
 
+
+
+# extract basic stats from deletion_blocks_array:
 
 
 
@@ -436,7 +440,8 @@ sub process_valid_alignment_hit {
 				# Classify all '-' from the substr_for_insertions_check as CRISPR insertions (handled as 'deletion')
 				# inside the seed region.
 				# Later on, I should detect if any '-' exceed the overall region. The ratio of these cases is not 
-				# expected to be significant though.
+				# expected to be significant though. (approach similar with the one followed at the
+				# 'get_deletions_per_block' sub.
 
 #(DU, PU, SD, MRE, PD, DD)			
 #@deletion_blocks_array
@@ -528,4 +533,73 @@ sub get_deletions_per_block{
 	print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
 	print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
 
+
+	# *** get the alignment segments for each of the regions
+	# SD: seed region
+	my $SD_segment = substr($sense_alignment, $target_start, length($target_seq));
+	print "[SD]:\n$SD_segment\n\n";
+
+	# PU: proximal upstream
+	$PU_start = $target_start-15;
+	my $PU_segment = substr($sense_alignment, $PU_start, 15);
+	print "[PU]:\n$PU_segment\n\n";
+
+	# DU: distal upstream
+	my $DU_segment = substr($sense_alignment, 0, $PU_start);
+	print "[DU]:\n$DU_segment\n\n";
+
+	# MRE: MRE 3' downstream
+	$MRE_3p_start = $target_start+length($target_seq); 
+	my $MRE_3p_segment = substr($sense_alignment, $MRE_3p_start, 14);
+	print "[MRE_3p]:\n$MRE_3p_segment\n\n";
+	
+	# PD: proximal downstream
+	$PD_start = $MRE_3p_start+14;
+	my $PD_segment = substr($sense_alignment, $PD_start, 15);
+	print "[PD]:\n$PD_segment\n\n";
+
+	# DD: distal downstream
+	$DD_start = $PD_start+15;
+	my $DD_segment = substr($sense_alignment, $DD_start);
+	print "[DD]:\n$DD_segment\n\n";
+
+
+$SD = count_deletions_ratio_in_segment($SD_segment);	
+$PU = count_deletions_ratio_in_segment($PU_segment);	
+$DU = count_deletions_ratio_in_segment($DU_segment);	
+$MRE_3p = count_deletions_ratio_in_segment($MRE_3p_segment);	
+$PD = count_deletions_ratio_in_segment($PD_segment);	
+$DD = count_deletions_ratio_in_segment($DD_segment);	
+	
+
+
+print "(DU, PU, SD, MRE_3p, PD, DD): $DU, $PU, $SD, $MRE_3p, $PD, $DD\n";
+
+
+my @deletions_vector = ($DU, $PU, $SD, $MRE_3p, $PD, $DD);
+push(@deletion_blocks_array, \@deletions_vector);
+
+
+
+}
+
+
+sub count_deletions_ratio_in_segment {
+	
+	$segment = shift;
+
+	@deletions = $segment =~ /[\-AGCTU]/g;
+
+	$deletions = scalar @deletions;
+	$deletions_ratio = $deletions/length($segment);
+	return $deletions_ratio;
+}
+
+sub count_deletions_in_segment {
+	
+	$segment = shift;
+
+	@deletions = $segment =~ /[\-AGCTU]/g;
+
+	return scalar @deletions;
 }
