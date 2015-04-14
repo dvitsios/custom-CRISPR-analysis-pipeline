@@ -21,7 +21,7 @@ close $dh;
 
 
 #debug
-#@lib_dirs = ("C");
+#@lib_dirs = ("A");
 
 my $term_cnt = 0;
 foreach(@lib_dirs){
@@ -48,7 +48,7 @@ foreach(@lib_dirs){
 		close $dh;
 
 #debug
-#@mres = ("G10");
+@mres = ("A8");
 
 		foreach(@mres){
 			$mre = $_;
@@ -79,6 +79,9 @@ foreach(@lib_dirs){
 	}
 }
 
+
+# debug only
+exit;
 
 
 
