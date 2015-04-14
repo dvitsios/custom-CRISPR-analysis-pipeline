@@ -8,6 +8,9 @@ $out_dir = "./needle_output";
 #$out_dir = "./needle_output-antons_bins";
 
 
+$DEBUG = 0;
+
+
 # *** initialise ***
 my %target_seqs_hash = ();
 get_target_seqs_hash();
@@ -20,8 +23,12 @@ opendir $dh, $out_dir;
 close $dh;
 
 
+
 #debug
-#@lib_dirs = ("A");
+if($DEBUG){
+	@lib_dirs = ("C");
+}
+
 
 my $term_cnt = 0;
 foreach(@lib_dirs){
@@ -48,8 +55,9 @@ foreach(@lib_dirs){
 		close $dh;
 
 #debug
-@mres = ("A8");
-
+if($DEBUG){
+	@mres = ("G5");
+}
 		foreach(@mres){
 			$mre = $_;
 
@@ -81,8 +89,9 @@ foreach(@lib_dirs){
 
 
 # debug only
-exit;
-
+if($DEBUG){
+	exit;
+}
 
 
 open(LIB_BASIC_FH, ">$out_dir/All_libs_basic.stats");
@@ -90,6 +99,12 @@ print LIB_BASIC_FH "LIBRARY\tMRE\tTOTAL_COUNTS\tVALID_READS\tDISCARDED_READS\tAL
 
 open(LIB_CLASSIFICATION_FH, ">$out_dir/All_libs_classification.stats");
 print LIB_CLASSIFICATION_FH "LIBRARY\tMRE\tWT\tWT_SEED_INTACT\tDELETIONS_IN_SEED_RATIO_CRISPR\tTARGET_SEQ_NOT_FOUND_CRISPR\tWT_CNT\tWT_SEED_INTACT_CNT\tDELETIONS_IN_SEED_CNT_CRISPR\tTARGET_SEQ_NOT_FOUND_CNT_CRISPR\n";
+
+
+
+open(LIB_DELETIONS_COVERAGE_FOR_ALL_MRES, ">$out_dir/All_libs_deletions_coverage.stats");
+print LIB_DELETIONS_COVERAGE_FOR_ALL_MRES "LIBRARY\tMRE\tDU\tPU\tSD\tMRE_3p\tPD\tDD\n";
+
 
 # mine the extracted stats
 foreach(@lib_dirs){
@@ -113,6 +128,9 @@ foreach(@lib_dirs){
 		open(SEQ_FH, $seq_classification_file);
 		$basic_stats_file = "$stats_input_dir/basic.stats";
 		open(BASIC_FH, $basic_stats_file);
+
+		$deletions_summary_file = "$stats_input_dir/deletions_summary.stats";
+		open(DELETIONS_FH, $deletions_summary_file);
 
 		if(-s $seq_classification_file && -s $basic_stats_file){
 
@@ -147,6 +165,13 @@ foreach(@lib_dirs){
 	#		$total_counts = $basic_stats_vals[1];
 	#		$valid_reads = $basic_stats_vals[2];
 	#		$discarded_reads = $basic_stats_vals[3];
+		}
+
+		if(-s $deletions_summary_file){
+			@deletions_file_lines = <DELETIONS_FH>;
+			$deletions_summary = $deletions_file_lines[1];
+
+			print LIB_DELETIONS_COVERAGE_FOR_ALL_MRES "$lib\t$deletions_summary";
 		}	
 		
 	}

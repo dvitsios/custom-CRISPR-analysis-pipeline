@@ -36,8 +36,9 @@ open(FH2, $needle_out2);
 
 my $ALLOWED_MISMATCHES_THRESHOLD = 6;
 my $ALLOWED_INSERTIONS_THRESHOLD = 5;	
-my $TRIM_SEQS_TO_100_NT = "T";
-
+my $TRIM_SEQS_TO_100_NT = 1;
+$RETURN_DELETIONS_RATIO = 1;
+$INCLUDE_PURE_WT_READS_IN_DELETIONS_RATIOS = 1;
 
 
 
@@ -93,6 +94,7 @@ open(DELETIONS_IN_SEED, ">$path_to_save/deletions_in_seed.seqs");
 open(BASIC_STATS_FH, ">$path_to_save/basic.stats");
 open(SEQ_CLASSIFICATION_FH, ">$path_to_save/seq_classification.stats");
 open(DELETIONS_PER_BLOCK, ">$path_to_save/deletions_per_block.txt");
+open(DELETION_SUMMARY_STATS, ">$path_to_save/deletions_summary.stats");
 
 
 my $target_start = -1;
@@ -125,7 +127,7 @@ while(defined($l1 = <FH1>) && defined($l2 =<FH2>)){
 		$amplic_aligned_seq = $l1;
 		$anti_amplic_aligned_seq = $l2;	
 
-if($TRIM_SEQS_TO_100_NT eq "T"){
+if($TRIM_SEQS_TO_100_NT){
 $target_start = index($amplic_aligned_seq , $target_seq);
 $anti_target_start = index($anti_amplic_aligned_seq , $target_seq);
 
@@ -138,13 +140,18 @@ $anti_target_start = index($anti_amplic_aligned_seq , $target_seq);
 #print "Original anti_amplic_aligned_seq:\n";
 #print "$anti_amplic_aligned_seq\n";
 $substr_start = $target_start - 50;
-
+if($substr_start < 0){
+	$substr_start = 0;
+}
 
 if($target_start != -1){
 	$amplic_aligned_seq = substr($amplic_aligned_seq, $substr_start, 100); 
 }
 
 $anti_substr_start = $anti_target_start - 50;
+if($anti_substr_start < 0){
+	$$anti_substr_start = 0;
+}
 if($anti_target_start != -1){
 	$anti_amplic_aligned_seq = substr($anti_amplic_aligned_seq, $anti_substr_start, 100); 
 }
@@ -189,7 +196,7 @@ if($anti_target_start != -1){
 		$anti_sense_alignment = $l2;
 
 
-if($TRIM_SEQS_TO_100_NT eq "T"){
+if($TRIM_SEQS_TO_100_NT){
 #print "$sense_alignment\n";
 #print "$anti_sense_alignment\n";
 #print "substr_start: $substr_start\n";
@@ -230,13 +237,15 @@ if($anti_target_start != -1){
 		# ***** PROCESSING *****
 		# **********************
 		if($TOO_MANY_MISMATCHES eq "T" || $TOO_MANY_AMPLIC_INSERTIONS eq "T"){
-
+#print "TOO_MANY_MISMATCHES: $TOO_MANY_MISMATCHES\n";
+#print "TOO_MANY_AMPLIC_INSERTIONS: $TOO_MANY_AMPLIC_INSERTIONS\n";
 			# process anti-sense read since the sense read has been discarded already based
 			# on the allowed insertions and deletions thresholds.
 			if(!($anti_TOO_MANY_MISMATCHES eq "T" || $TOO_MANY_AMPLIC_INSERTIONS eq "T")){
 				process_valid_alignment_hit($anti_amplic_aligned_seq, $target_seq, \@anti_insertions, $anti_sense_alignment);			
 				$inconsistent_pairs_cnt++;
 			} else{
+#print "=====>discarded read!\n";
 				$discarded_reads_cnt++;
 			}
 
@@ -247,6 +256,7 @@ if($anti_target_start != -1){
 			next;
 		} else{ # process the valid alignment hit for the sense read only.
 
+			print "$sense_alignment\n";
 			process_valid_alignment_hit($amplic_aligned_seq, $target_seq, \@insertions, $sense_alignment);
 
 		}	
@@ -322,21 +332,47 @@ close(SEQ_CLASSIFICATION_FH);
 
 
 
-print "*** Write deletion blocks counts into a file  ***\n";
+print "*** Write deletion counts per block for all reads of the current MRE into a file  ***\n";
+print DELETIONS_PER_BLOCK "DU PU SD MRE_3p PD DD\n";
 foreach(@deletion_blocks_array){
 	@arr = @$_;
-	print "@arr\n";
-	print DELETIONS_PER_BLOCK "@arr\n";
+#	print "@arr\n";
+	print DELETIONS_PER_BLOCK join("\t", @arr)."\n";
 }
 close(DELETIONS_PER_BLOCK);
 
 
 
 
+
 # extract basic stats from deletion_blocks_array:
+$sum_array_ref = get_summary_stats_of_deletions(\@deletion_blocks_array);
+@sum_array = @$sum_array_ref;
+
+print "*** SUM_ARRAY ***\n";
+print "@sum_array\n";
 
 
 
+print DELETION_SUMMARY_STATS "MRE\tDU\tPU\tSD\tMRE_3p\tPD\tDD\n";
+printf DELETION_SUMMARY_STATS "$mre";
+foreach(@sum_array){
+	printf DELETION_SUMMARY_STATS "\t%.6f", $_;
+}
+print DELETION_SUMMARY_STATS "\n";
+
+
+
+
+
+
+
+
+
+
+# **********************************************
+# 		   SUBROUTINES
+# **********************************************
 
 sub index_all{
 
@@ -419,7 +455,19 @@ sub process_valid_alignment_hit {
 				$tmp_target_start = index($tmp_amplic_aligned_seq , $target_seq);
 				
 
+
+				my @preceding_insertions = substr($amplic_aligned_seq, 0, $tmp_target_start) =~ /\-/; 
+				$preceding_insertions = scalar @preceding_insertions;
+	
+	
+
+				if($preceding_insertions > 0){
+					$tmp_target_start += $preceding_insertions;
+				}
+
+
 				$substr_for_insertions_check = substr($amplic_aligned_seq, $tmp_target_start, $substr_length_to_check_for_insertion);
+
 
 #				print "substr_for_insertions_check: $substr_for_insertions_check\n";
 
@@ -431,8 +479,16 @@ sub process_valid_alignment_hit {
 #				print "substr_seed_segment: $substr_seed_segment\n";
 				
 				if($substr_seed_segment ne $target_seq){
+					print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
+					print "sense_alignment:\n$sense_alignment\n\n";
+					print "substr_seed_segment: $substr_seed_segment\ntarget_seq: $target_seq\n";
+					print "preceding_insertions: $preceding_insertions\n";
 					print "[Error]: substr_seed_segment ne target_seq!\n";
-					exit;
+				
+					print substr($amplic_aligned_seq, 0, $tmp_target_start);
+					print "original_substr_for_insertions_check:\n$original_substr_for_insertions_check\n";
+					#sleep 3;
+					#exit;
 				}
 
 		
@@ -446,8 +502,20 @@ sub process_valid_alignment_hit {
 #(DU, PU, SD, MRE, PD, DD)			
 #@deletion_blocks_array
 
+				#@SD = $original_substr_for_insertions_check =~ /\-/g;
 				@SD = $original_substr_for_insertions_check =~ /\-/g;
 				$SD = scalar @SD;
+
+				# normalise based on the length of the segment
+				if($RETURN_DELETIONS_RATIO){
+					$SD /= length($target_seq);
+					
+					# add approximation in case there are (rare) insertions not in the seed region segment
+					if($SD > 1){
+						$SD = 1;
+					}
+				}
+					
 #				print "SD: $SD\n";   	
 
 				my @deletions_vector = (0, 0, $SD, 0, 0, 0);				 
@@ -469,6 +537,11 @@ sub process_valid_alignment_hit {
 
 		if($num_of_amplicon_insertions == 0 && $num_of_deletions_in_trimmed_read == 0){
 			$pure_wt_cnt++;
+
+			if($INCLUDE_PURE_WT_READS_IN_DELETIONS_RATIOS){
+				my @deletions_vector = (0, 0, 0, 0, 0, 0);
+				push(@deletion_blocks_array, \@deletions_vector);
+			}
 			#print "[Pure WT]:\n";
 			#print "num_of_amplicon_insertions: $num_of_amplicon_insertions\n";
 			#print "num_of_deletions_in_trimmed_read: $num_of_deletions_in_trimmed_read\n";
@@ -517,7 +590,7 @@ sub process_valid_alignment_hit {
 			# recording the deletions across the are of interest.
 
 			# get the number of deletions in each of the pre-defined deletion blocks
-			get_deletions_per_block($amplic_aligned_seq, $trimmed_sense_alignment, $target_start);
+			get_deletions_per_block($amplic_aligned_seq, $sense_alignment, $target_start);
 	
 
 		}
@@ -527,53 +600,79 @@ sub process_valid_alignment_hit {
 sub get_deletions_per_block{
 
 	$amplic_aligned_seq = shift;
-	$trimmed_sense_alignment = shift;
+	$sense_alignment = shift;
 	$target_start = shift;
 
-	print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
-	print "trimmed_sense_alignment:\n$trimmed_sense_alignment\n\n";
+#	print "amplic_aligned_seq:\n$amplic_aligned_seq\n";
+#	print "sense_alignment:\n$sense_alignment\n\n";
 
 
 	# *** get the alignment segments for each of the regions
 	# SD: seed region
 	my $SD_segment = substr($sense_alignment, $target_start, length($target_seq));
-	print "[SD]:\n$SD_segment\n\n";
+#	print "[SD]:\n$SD_segment\n\n";
 
 	# PU: proximal upstream
-	$PU_start = $target_start-15;
-	my $PU_segment = substr($sense_alignment, $PU_start, 15);
-	print "[PU]:\n$PU_segment\n\n";
+	$PU_length = 15;
+	$PU_start = $target_start-$PU_length;
+	if($PU_start < 0){ 
+		$PU_start = 0; 
+		$PU_length = $target_start;
+	}
+	my $PU_segment = substr($sense_alignment, $PU_start, $PU_length);
+#	print "[PU]:\n$PU_segment\n\n";
 
 	# DU: distal upstream
 	my $DU_segment = substr($sense_alignment, 0, $PU_start);
-	print "[DU]:\n$DU_segment\n\n";
+#	print "[DU]:\n$DU_segment\n\n";
 
 	# MRE: MRE 3' downstream
+	$MRE_3p_length = 14;
 	$MRE_3p_start = $target_start+length($target_seq); 
-	my $MRE_3p_segment = substr($sense_alignment, $MRE_3p_start, 14);
-	print "[MRE_3p]:\n$MRE_3p_segment\n\n";
+	if($MRE_3p_start > length($sense_alignment)){
+		$MRE_3p_start = 0;
+		$MRE_3p_length = 0;	
+	}
+	my $MRE_3p_segment = substr($sense_alignment, $MRE_3p_start, $MRE_3p_length);
+#	print "[MRE_3p]:\n$MRE_3p_segment\n\n";
 	
 	# PD: proximal downstream
-	$PD_start = $MRE_3p_start+14;
+	$PD_length = 15;
+	$PD_start = $MRE_3p_start+$MRE_3p_length;
+	if($MRE_3p_start == 0 || ($PD_start > length($sense_alignment)) ){
+		$PD_start = 0;
+		$PD_length = 0;
+	}
 	my $PD_segment = substr($sense_alignment, $PD_start, 15);
-	print "[PD]:\n$PD_segment\n\n";
+#	print "[PD]:\n$PD_segment\n\n";
 
 	# DD: distal downstream
-	$DD_start = $PD_start+15;
-	my $DD_segment = substr($sense_alignment, $DD_start);
-	print "[DD]:\n$DD_segment\n\n";
+	$DD_start = $PD_start+$PD_length;
+	my $DD_segment = "";
+	if(!($PD_start == 0 || ($DD_start > length($sense_alignment)))){
+		$DD_segment = substr($sense_alignment, $DD_start);
+	}
+
+	if($DD_start > length($sense_alignment)){
+		print "[Error]: in substr, DD_start > sense_alignment\n";
+		print "sense_alignment:\n$sense_alignment\n";
+		print "DD_start: $DD_start\n";
+		#sleep 4;	
+	}
+
+#	print "[DD]:\n$DD_segment\n\n";
 
 
-$SD = count_deletions_ratio_in_segment($SD_segment);	
-$PU = count_deletions_ratio_in_segment($PU_segment);	
-$DU = count_deletions_ratio_in_segment($DU_segment);	
-$MRE_3p = count_deletions_ratio_in_segment($MRE_3p_segment);	
-$PD = count_deletions_ratio_in_segment($PD_segment);	
-$DD = count_deletions_ratio_in_segment($DD_segment);	
+$SD = count_deletions_in_segment($SD_segment);	
+$PU = count_deletions_in_segment($PU_segment);	
+$DU = count_deletions_in_segment($DU_segment);	
+$MRE_3p = count_deletions_in_segment($MRE_3p_segment);	
+$PD = count_deletions_in_segment($PD_segment);	
+$DD = count_deletions_in_segment($DD_segment);	
 	
 
 
-print "(DU, PU, SD, MRE_3p, PD, DD): $DU, $PU, $SD, $MRE_3p, $PD, $DD\n";
+#print "(DU, PU, SD, MRE_3p, PD, DD): $DU, $PU, $SD, $MRE_3p, $PD, $DD\n";
 
 
 my @deletions_vector = ($DU, $PU, $SD, $MRE_3p, $PD, $DD);
@@ -584,22 +683,42 @@ push(@deletion_blocks_array, \@deletions_vector);
 }
 
 
-sub count_deletions_ratio_in_segment {
-	
-	$segment = shift;
-
-	@deletions = $segment =~ /[\-AGCTU]/g;
-
-	$deletions = scalar @deletions;
-	$deletions_ratio = $deletions/length($segment);
-	return $deletions_ratio;
-}
-
 sub count_deletions_in_segment {
 	
 	$segment = shift;
 
 	@deletions = $segment =~ /[\-AGCTU]/g;
 
-	return scalar @deletions;
+	$deletions = scalar @deletions;
+
+
+	if($RETURN_DELETIONS_RATIO){
+		$deletions = $deletions/length($segment);	
+	}
+
+	return $deletions;
+}
+
+
+
+sub get_summary_stats_of_deletions{
+
+	@sum_array = (0, 0, 0, 0, 0, 0);
+
+	foreach(@deletion_blocks_array){
+		@arr = @$_;
+
+		for($i=0; $i<scalar @sum_array; $i++){
+			$sum_array[$i] += $arr[$i];
+		}
+	}
+
+	if((scalar @deletion_blocks_array) != 0){
+		foreach(@sum_array){
+			$_ /= scalar @deletion_blocks_array;
+		}
+	}
+
+
+	return(\@sum_array);
 }
