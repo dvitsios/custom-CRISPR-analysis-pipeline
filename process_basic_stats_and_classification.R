@@ -37,6 +37,7 @@ for(lib in libs){
 	print(head(cur_lib_basic_ratios))
 
 
+
 	# plot valid/discarded % ratios for each MRE
 	barplot(as.matrix(t(cur_lib_basic_ratios)), col=valid_discarded_colors, main=paste("Library ", lib, "\nValid (blue) & Discarded (light red)\nreads ratios", sep=""), las = 2, cex.names=0.4)
 
@@ -64,7 +65,7 @@ wt_crispr_colors = c("#1f78b4", "#a6cee3", "#33a02c", "#b2df8a")
 libs = sort(unique(basic_stats_df$LIBRARY))
 for(lib in libs){
 
-        print(lib)
+    print(lib)
 	cur_lib_classifications_df = classifications_df[ classifications_df$LIBRARY == lib, ]
 
 

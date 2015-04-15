@@ -140,19 +140,19 @@ $anti_target_start = index($anti_amplic_aligned_seq , $target_seq);
 #print "Original anti_amplic_aligned_seq:\n";
 #print "$anti_amplic_aligned_seq\n";
 $substr_start = $target_start - 50;
-if($substr_start < 0){
-	$substr_start = 0;
-}
 
 if($target_start != -1){
+    if($substr_start < 0){
+        $substr_start = 0;
+    }
 	$amplic_aligned_seq = substr($amplic_aligned_seq, $substr_start, 100); 
 }
 
 $anti_substr_start = $anti_target_start - 50;
-if($anti_substr_start < 0){
-	$$anti_substr_start = 0;
-}
 if($anti_target_start != -1){
+    if($anti_substr_start < 0){
+        $anti_substr_start = 0;
+    }
 	$anti_amplic_aligned_seq = substr($anti_amplic_aligned_seq, $anti_substr_start, 100); 
 }
 
@@ -483,7 +483,7 @@ sub process_valid_alignment_hit {
 					print "sense_alignment:\n$sense_alignment\n\n";
 					print "substr_seed_segment: $substr_seed_segment\ntarget_seq: $target_seq\n";
 					print "preceding_insertions: $preceding_insertions\n";
-					print "[Error]: substr_seed_segment ne target_seq!\n";
+					print "[Warning]: substr_seed_segment ne target_seq!\n";
 				
 					print substr($amplic_aligned_seq, 0, $tmp_target_start);
 					print "original_substr_for_insertions_check:\n$original_substr_for_insertions_check\n";
@@ -653,12 +653,11 @@ sub get_deletions_per_block{
 		$DD_segment = substr($sense_alignment, $DD_start);
 	}
 
-	if($DD_start > length($sense_alignment)){
-		print "[Error]: in substr, DD_start > sense_alignment\n";
-		print "sense_alignment:\n$sense_alignment\n";
-		print "DD_start: $DD_start\n";
-		#sleep 4;	
-	}
+#	if($DD_start > length($sense_alignment)){
+#		print "[Warning]: in substr, DD_start > sense_alignment\n";
+#		print "sense_alignment:\n$sense_alignment\n";
+#		print "DD_start: $DD_start\n";
+#	}
 
 #	print "[DD]:\n$DD_segment\n\n";
 
@@ -693,7 +692,11 @@ sub count_deletions_in_segment {
 
 
 	if($RETURN_DELETIONS_RATIO){
-		$deletions = $deletions/length($segment);	
+		if(length($segment) != 0){
+            $deletions = $deletions/length($segment);	
+        } else{
+            $deletions = 0;
+        }
 	}
 
 	return $deletions;
