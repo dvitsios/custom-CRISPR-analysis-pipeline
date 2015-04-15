@@ -285,6 +285,10 @@ print "==================================\n";
 
 my $valid_reads_cnt = $total_counts - $discarded_reads_cnt;
 
+# exit if current MRE didn't have any counts.
+if($total_counts == 0){
+	exit;
+}
 my $aln_quality = (1-($lines_with_many_mismatches/$total_counts))*100;
 my $no_amplicon_insertion_ratios = (1-($lines_with_many_insertions/$total_counts))*100;
 my $discarded_reads_ratio = ($discarded_reads_cnt/$total_counts)*100;
