@@ -4,33 +4,82 @@ library(RColorBrewer)
 df = read.table(file="needle_output/All_libs_deletions_coverage.stats", stringsAsFactors=FALSE, sep="\t", header=T)
 print(head(df))
 
-libs = unique(df$LIBRARY)
-for(lib in libs){
-print(paste("lib:", lib))
-    sub_df = subset(df, "LIBRARY"="D")
-    print(head(sub_df))
-    stop()
 
-    mres = rownames(df)
-    del_colnames = colnames(df)
-    del_colnames = del_colnames[3:length(del_colnames)]
-    print(del_colnames)
+get_deletions_coverage_across_all_libs <- function(){
 
+	mres = paste(df$LIBRARY, df$MRE, sep="_")
+	rownames(df) = mres
+	del_colnames = colnames(df)
+	del_colnames = del_colnames[3:length(del_colnames)]
 
-    df[ , 1] = NULL
-    df[ , 1] = NULL
-    print(head(df))
-    str(df)
+	# delete columns: "LIBRARY" and "MRE"
+	df[ , 1] = NULL
+	df[ , 1] = NULL
+	print(head(df))
 
-#df = as.data.frame(lapply(df,as.numeric))
-
-    mat = as.matrix(df)
-#apply(mat, 1, as.numeric)
-#print(class(mat))
+	mat = as.matrix(df)
 
 
-    print(head(df))
-
-
-    heatmap.2(mat,  col=brewer.pal(8,"GnBu"), Colv = del_colnames, Rowv = mres, trace="none", dendrogram="none") 
+	#heatmap.2(mat,  col=brewer.pal(8,"GnBu"), Colv = del_colnames, trace="none", dendrogram="none", sepwidth=c(0.05, 0.45), lhei = c(1, 5), cexRow=0.1,
+	heatmap.2(mat,  col=brewer.pal(8,"GnBu"), Colv = del_colnames, trace="none", dendrogram="none", sepwidth=c(0.35, 0.45), cexRow=0.1, cexCol=0.4,
+		lhei = c(0.05,0.15))
+		# colsep=c(1:6),rowsep=(1:nrow(mat)), margins=c(1,8) ) 
 }
+
+
+
+get_deletions_coverage_for_lib <- function(lib_df){
+
+	mres = lib_df$MRE
+	rownames(lib_df) = mres
+	del_colnames = colnames(df)
+        del_colnames = del_colnames[3:length(del_colnames)]
+
+	lib_df = lib_df[ order(rownames(lib_df)), ]
+
+	# delete columns: "LIBRARY" and "MRE"
+        lib_df[ , 1] = NULL
+        lib_df[ , 1] = NULL
+        print(head(lib_df))
+
+        mat = as.matrix(lib_df)
+	
+	heatmap.2(mat,  col=brewer.pal(8,"GnBu"), Colv = del_colnames, Rowv=mres, trace="none", dendrogram="none", sepwidth=c(0.35, 0.45), cexRow=0.2, cexCol=0.4,
+                lhei = c(0.05,0.15) )		
+
+}
+
+
+
+pdf(file="needle_output/deletions_coverage.pdf")
+
+
+get_deletions_coverage_across_all_libs()
+
+
+libs = sort(unique(df$LIBRARY))
+for(lib in libs){
+ print(paste("lib:", lib))
+
+    lib_df = subset(df, LIBRARY==lib)
+    print(head(lib_df))
+   
+	get_deletions_coverage_for_lib(lib_df) 
+}
+
+
+
+
+
+
+
+
+
+
+
+dev.off()
+
+
+
+
+

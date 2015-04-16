@@ -56,7 +56,7 @@ foreach(@lib_dirs){
 
 #debug
 if($DEBUG){
-	@mres = ("G5");
+	@mres = ("C8");
 }
 		foreach(@mres){
 			$mre = $_;
