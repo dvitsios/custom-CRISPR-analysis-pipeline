@@ -28,7 +28,7 @@ get_deletions_coverage_across_all_libs <- function(){
 
 
 
-get_deletions_coverage_for_lib <- function(lib_df){
+get_deletions_coverage_for_lib <- function(lib_df, lib){
 
 	mres = lib_df$MRE
 	rownames(lib_df) = mres
@@ -44,8 +44,8 @@ get_deletions_coverage_for_lib <- function(lib_df){
 
         mat = as.matrix(lib_df)
 	
-	heatmap.2(mat,  col=brewer.pal(8,"GnBu"), Colv = del_colnames, Rowv=mres, trace="none", dendrogram="none", sepwidth=c(0.35, 0.45), cexRow=0.2, cexCol=0.4,
-                lhei = c(0.05,0.15) )		
+	heatmap.2(mat,  col=brewer.pal(8,"GnBu"), Colv = del_colnames, Rowv=mres, trace="none", dendrogram="none", sepwidth=c(0.35, 0.45), cexRow=0.3, cexCol=0.4,
+                lhei = c(0.05,0.15), main=paste("Deletions coverage, Library:", lib))	
 
 }
 
@@ -54,9 +54,11 @@ get_deletions_coverage_for_lib <- function(lib_df){
 pdf(file="needle_output/deletions_coverage.pdf")
 
 
+# get deletions coverage for all libs together
 get_deletions_coverage_across_all_libs()
 
 
+# get deletions coverage for each lib separately
 libs = sort(unique(df$LIBRARY))
 for(lib in libs){
  print(paste("lib:", lib))
@@ -64,7 +66,7 @@ for(lib in libs){
     lib_df = subset(df, LIBRARY==lib)
     print(head(lib_df))
    
-	get_deletions_coverage_for_lib(lib_df) 
+	get_deletions_coverage_for_lib(lib_df, lib) 
 }
 
 
