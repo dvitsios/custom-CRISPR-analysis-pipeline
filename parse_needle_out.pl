@@ -256,7 +256,7 @@ if($anti_target_start != -1){
 			next;
 		} else{ # process the valid alignment hit for the sense read only.
 
-			print "$sense_alignment\n";
+			#print "$sense_alignment\n";
 			process_valid_alignment_hit($amplic_aligned_seq, $target_seq, \@insertions, $sense_alignment);
 
 		}	
@@ -272,10 +272,10 @@ close(FH2);
 
 
 
-print "========= DEBUGGING INFO =========\n";
-print "total_counts: $total_counts\n";
-print "discarded_reads_cnt: $discarded_reads_cnt\n";
-print "==================================\n";
+#print "========= DEBUGGING INFO =========\n";
+#print "total_counts: $total_counts\n";
+#print "discarded_reads_cnt: $discarded_reads_cnt\n";
+#print "==================================\n";
 
 
 

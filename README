@@ -12,18 +12,19 @@
 
 
 =======================================================================================
+[0. step]:
 Needleman-Wunsch Alignment scripts:
 > Samples: 
 bsub -n 4 ./align_all_samples.sh
 
-# depr: bsub -n 7 -M 70000 -R "rusage[mem=70000]" ./align_samples_with_needlewunsch.pl 
+# depr:
 # bsub -n 20 -M 4096 -R "rusage[mem=4096]" ./align_all_samples.sh
 
 
 > Calibration:
 bsub -n 4 ./align_all_calibration.sh 
 
-# depr: bsub -n 5 -M 70000 -R "rusage[mem=70000]" ./align_calibration_with_needlewunsch.pl 
+# depr:
 # bsub -n 20 -M 4096 -R "rusage[mem=4096]" ./align_all_calibration.sh
 
 

@@ -15,6 +15,10 @@ my @libs = ($ARGV[0]);
 # my @libs = ("A", "B", "C", "D");
 
 
+my $MERGE_WXYZ_WITH_ABCD_LIBS = 1;
+my %lib_mappings_hash = ( 'W','A', 'X','B', 'Y','C', 'Z','D'); 
+
+print Dumper(\%lib_mappings_hash);
 
 my $MAX_NUM_OF_THREADS = 1;
 
@@ -31,7 +35,9 @@ foreach(@libs){
 
 	my $lib_amplicons_hash_ref = get_amplicons_for_cur_lib($lib);
 	my %lib_amplicons_hash = %$lib_amplicons_hash_ref;
-	
+
+
+
 #	print "\n\nLibrary: $lib\n";
 #	print Dumper($lib_amplicons_hash_ref);
 
@@ -48,9 +54,8 @@ foreach(@libs){
 		if(-d $input_dir){
 			
 				
-#				print "$input_dir exists! Starting samples mapping...\n";
+				print "$input_dir exists! Starting samples mapping...\n";
 				my @all_input_mres_basenames = glob("$input_dir/*_1.fasta");
-
 
 
 				foreach(@all_input_mres_basenames){
@@ -58,7 +63,10 @@ foreach(@libs){
 					s/_1\.fasta//;
 				}
 
-
+				if($MERGE_WXYZ_WITH_ABCD_LIBS){
+					$lib = $lib_mappings_hash{$lib};
+				}
+				
 				#output
 				my $wd = "$base_out_dir/$lib";
 				`mkdir -p $wd`;
@@ -114,10 +122,19 @@ foreach(@libs){
 	
 
 							my $cur_needle_out_file1 = "$wd/$cur_mre_basename/$cur_mre_basename\_1.needle";
-							open(NEEDLE_FH1, ">$cur_needle_out_file1");
+							if(!$MERGE_WXYZ_WITH_ABCD_LIBS){	
+								open(NEEDLE_FH1, ">$cur_needle_out_file1");
+							} else{
+								open(NEEDLE_FH1, ">>$cur_needle_out_file1");
+							}
+
 
 							my $cur_needle_out_file2 = "$wd/$cur_mre_basename/$cur_mre_basename\_2.needle";
-							open(NEEDLE_FH2, ">$cur_needle_out_file2");
+							if(!$MERGE_WXYZ_WITH_ABCD_LIBS){     
+								open(NEEDLE_FH2, ">$cur_needle_out_file2");
+							} else{
+								open(NEEDLE_FH2, ">>$cur_needle_out_file2");
+							}
 
 						
 							my $pair1 = "$input_dir/$cur_mre_basename"."_1.fasta";
@@ -125,7 +142,12 @@ foreach(@libs){
 
 							my $pair1_fh = "$wd/$cur_mre_basename/$cur_mre_basename"."_1_fh.fasta"; #fh: fixed header	
 
-							open(FILE1_FH, ">$pair1_fh");
+							if(!$MERGE_WXYZ_WITH_ABCD_LIBS){     
+								open(FILE1_FH, ">$pair1_fh");
+							} else {
+								open(FILE1_FH, ">>$pair1_fh");
+							}
+	
 							my $header1 = "";
 							while(my $l1 = <FILE1>){
                                                                 chomp($l1);
@@ -182,7 +204,13 @@ foreach(@libs){
 							open(FILE2, $pair2);
 
 							my $pair2_rc = "$wd/$cur_mre_basename/$cur_mre_basename"."_2_rc.fasta";
-							open(FILE2_RC, ">$pair2_rc"); # reverse complement fasta of antisense sequences!
+							if(!$MERGE_WXYZ_WITH_ABCD_LIBS){     
+								open(FILE2_RC, ">$pair2_rc"); # reverse complement fasta of antisense sequences!
+							} else{
+								open(FILE2_RC, ">>$pair2_rc"); # reverse complement fasta of antisense sequences!
+							}
+
+
 							my $header2 = "";
 							while(my $l2 = <FILE2>){
 								chomp($l2);
@@ -268,6 +296,7 @@ sub get_amplicons_for_cur_lib{
 		}
 	}
 
+
 	return(\%amplicons_hash);
 }
 
@@ -287,3 +316,5 @@ sub revcompl{
 
         return(reverse($seq));
 }
+
+
