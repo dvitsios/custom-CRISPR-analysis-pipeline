@@ -72,6 +72,11 @@ lib_df = lib_df[ match(sorted_mres, lib_df$MRE), ]
 
 
 
+
+# *********************************************
+# ***           RUN ANALYSIS                ***
+# *********************************************
+
 pdf(file="needle_output/deletions_coverage.pdf")
 
 
@@ -90,18 +95,7 @@ for(lib in libs){
 	get_deletions_coverage_for_lib(lib_df, lib) 
 }
 
-
-
-
-
-
-
-
-
-
-
 dev.off()
-
 
 
 

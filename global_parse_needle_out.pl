@@ -8,7 +8,7 @@ $out_dir = "./needle_output";
 #$out_dir = "./needle_output-antons_bins";
 
 
-$DEBUG = 0;
+$DEBUG = 1;
 
 
 # *** initialise ***
