@@ -75,10 +75,10 @@ fold_change_fit = lm(fold_change_val ~ DU_fold_change + PU_fold_change + SD_fold
 summary(fold_change_fit)
 plot(fold_change_fit, scale="r2")
 
-library(leaps)
-library(car)
+#library(leaps)
+#library(car)
 
-subsets(fold_change_fit, statistic="rsq")
+#subsets(fold_change_fit, statistic="rsq")
 
 
 stop()
