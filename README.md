@@ -10,13 +10,14 @@
 ***
 
 **[Step-1]**:
-Needleman-Wunsch Alignment scripts:
-*Samples*: 
+Needleman-Wunsch Alignment scripts.
+
+*For normal samples*: 
 ```
 bsub -n 4 ./align_all_samples.sh
 ```
 
-*Calibration*:
+*For calibration samples*:
 ```
 bsub -n 4 ./align_all_calibration.sh
 ``` 
